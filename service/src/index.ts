@@ -6,7 +6,6 @@ import type { ChatMessage } from './chatgpt'
 import { chatConfig, chatReplyProcess, currentModel } from './chatgpt'
 import { auth } from './middleware/auth'
 import { limiter } from './middleware/limiter'
-import { isNotEmptyString } from './utils/is'
 const app = express()
 const router = express.Router()
 
@@ -58,8 +57,10 @@ router.post('/config', auth, async (req, res) => {
 
 router.post('/session', async (req, res) => {
   try {
-    const AUTH_SECRET_KEY = process.env.AUTH_SECRET_KEY
-    const hasAuth = isNotEmptyString(AUTH_SECRET_KEY)
+    const tokensJson = JSON.parse(await fs.readFile(path.resolve(process.env.TOKENS_DIR, 'tokens.json'), 'utf-8'))
+    const tokensKey = Object.keys(tokensJson)
+    const Authorization = `${req.headers.authorization}`
+    const hasAuth = tokensKey.includes(Authorization?.replace('Bearer ', ''))
     res.send({ status: 'Success', message: '', data: { auth: hasAuth, model: currentModel() } })
   }
   catch (error) {
@@ -72,7 +73,7 @@ router.post('/verify', async (req, res) => {
     const { token } = req.body as { token: string }
     if (!token)
       throw new Error('Secret key is empty')
-    const tokensJson = JSON.parse(await fs.readFile(path.resolve(__dirname, '../data/tokens.json'), 'utf8'))
+    const tokensJson = JSON.parse(await fs.readFile(path.resolve(process.env.TOKENS_DIR, 'tokens.json'), 'utf8'))
     const tokenKeys = Object.keys(tokensJson)
     if (!tokenKeys.includes(token))
       throw new Error('密钥无效 | Secret key is invalid')
