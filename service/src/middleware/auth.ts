@@ -1,11 +1,14 @@
-import { isNotEmptyString } from '../utils/is'
+import fs from 'fs/promises'
+
+import path from 'path'
 
 const auth = async (req, res, next) => {
-  const AUTH_SECRET_KEY = process.env.AUTH_SECRET_KEY
-  if (isNotEmptyString(AUTH_SECRET_KEY)) {
+  const tokensJson = JSON.parse(await fs.readFile(path.resolve(__dirname, '../data/tokens.json'), 'utf8'))
+  const tokenKeys = Object.keys(tokensJson)
+  if (tokenKeys.length) {
     try {
       const Authorization = req.header('Authorization')
-      if (!Authorization || Authorization.replace('Bearer ', '').trim() !== AUTH_SECRET_KEY.trim())
+      if (!tokenKeys.includes(Authorization || Authorization.replace('Bearer ', '').trim()))
         throw new Error('Error: 无访问权限 | No access rights')
       next()
     }
